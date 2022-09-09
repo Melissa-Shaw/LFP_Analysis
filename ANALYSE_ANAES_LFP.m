@@ -1,6 +1,7 @@
 %% Load and Analyse LFP
-addpath('X:\cortical_dynamics\User\ms1121\Code');
+addpath('X:\cortical_dynamics\User\ms1121\Code\General');
 run('makedb_TCB2_MS');
+clear AwakeV1 Batch1PFC Batch2PFC Batch3PFC Batch2V1
 
 % Set parameters
 freq_bounds = [55 90]; % freq_bounds = [8 32] for beta or [55 90] for gamma
@@ -49,6 +50,7 @@ for exp = AnaesPFC
     end
 
 end
+clear i 
 
 %%
 % Find frequency power
@@ -56,7 +58,7 @@ for i = 1:numel(LFP)
     [freq_LFP] = freq_filter_LFP(LFP(i),freq_bounds,COI(i,1));
     LFP(i).freq_bounds = freq_bounds;
     LFP(i).freq_power = freq_LFP;
-    if LFP(i).exp == 135 && strcmp(LFP(i).animal,'M210826_MS')
+    if strcmp(LFP(i).date,'260821') && strcmp(LFP(i).animal,'M210826_MS')
         LFP(i).freq_power(2666:2791) = NaN; % manual exclusion of single saturation
     end
     clear freq_LFP
@@ -78,7 +80,7 @@ for i = 1:numel(LFP)
     clear LFP_cond freqpower_cond specgram_cond
 end
 
-% Plot spectogram
+%% Plot spectogram
 for i = 1:numel(LFP)
     base(i).specgram = LFP(i).specgram_cond{1};
     sal(i).specgram = LFP(i).specgram_cond{2};
@@ -86,6 +88,7 @@ for i = 1:numel(LFP)
     tcb(i).specgram = LFP(i).specgram_cond{4};
 end
 figure
+set(gcf,'Color','w');
 hold on
 if sum(COI(:,2)) > 0
     [h1] = plot_LFP_psd(cat(3, base.specgram), cat(3, sal.specgram), 'k'); % saline
@@ -100,16 +103,18 @@ xlabel('Frequency (Hz)')
 ylabel('PSD ratio (post/pre)')
 if sum(COI(:,2)) > 0 && sum(COI(:,3)) > 0
     h = [h1 h2 h3];
-    legend(h, 'Control', 'Low TCB-2', 'TCB-2','location','southeast')
+    legend(h, 'Control', 'Low TCB-2', 'TCB-2','location','northeast')
 end
 set(gca, 'XScale', 'log')
 set(gca, 'XTick', 2.^(2:7))
+clear h h1 h2 h3 i base sal tcb_low tcb
 
 %% Plot frequency power
 figure
+set(gcf,'Color','w');
 t = tiledlayout('flow');
 title(t, ['Freq: ' num2str(freq_bounds(1)) ' - ' num2str(freq_bounds(2)) ' Hz']);
-
+%%
 ax1 = nexttile; % plots individual recordings with mean
 lowtcb_present = COI(:,3) > 0;
 plot_freq(LFP(lowtcb_present),align_point,'b',smth);
@@ -139,7 +144,8 @@ xlabel('Time (s)')
 box off
 
 linkaxes([ax1 ax2 ax3 ax4],'y');
-
+clear ax1 ax2 ax3 ax4 powermat
+%%
 nexttile % plots boxplot of perc change
 for i = 1:numel(LFP)
     base_power = nanmean(LFP(i).freq_power_cond{1});
@@ -165,11 +171,11 @@ hold off
 box off
 ylabel(['\Delta Freq Power (%)']);
 set(gca,'XTickLabel',{'Control' 'lowTCB2' 'TCB-2'});
-[~,p1] = ttest(perc_change(~lowtcb_present,1),perc_change(~lowtcb_present,3)); % saline vs tcb2
-[~,p2] = ttest(perc_change(lowtcb_present,2),perc_change(lowtcb_present,3)); % tcblow vs tcb2
-[~,p3] = ttest2(perc_change(~lowtcb_present,1),perc_change(lowtcb_present,2)); % saline vs tcblow
+[~,p1] = ttest(perc_change(:,1),perc_change(:,3)); % saline vs tcb2
+[~,p2] = ttest(perc_change(:,2),perc_change(:,3)); % tcblow vs tcb2
+[~,p3] = ttest2(perc_change(:,1),perc_change(:,2)); % saline vs tcblow
 title('P values:');
-subtitle(['salVtcb2 = ' num2str(round(p1,2)) ' tcblowVtcb2 = ' num2str(round(p2,2)) ' salVtcblow = ' num2str(round(p3,2))]);
+subtitle(['salVtcb2 = ' num2str(round(p1,3)) ' tcblowVtcb2 = ' num2str(round(p2,3)) ' salVtcblow = ' num2str(round(p3,3))]);
 
 
 nexttile % plots boxplot of post power only
@@ -200,6 +206,6 @@ set(gca,'XTickLabel',{'Control' 'lowTCB2' 'TCB-2'});
 [~,p3] = ttest2(cond_power(~lowtcb_present,1),cond_power(lowtcb_present,2)); % saline vs tcblow
 title('P values:');
 subtitle(['salVtcb2 = ' num2str(round(p1,2)) ' tcblowVtcb2 = ' num2str(round(p2,2)) ' salVtcblow = ' num2str(round(p3,2))]);
-
+clear h fill_color x_val i j c p1 p2 p3 t
 
 
