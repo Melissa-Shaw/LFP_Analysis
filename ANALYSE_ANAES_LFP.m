@@ -50,6 +50,8 @@ for exp = AnaesPFC
     end
 
 end
+sal_present = COI(:,2) > 0;
+lowtcb_present = COI(:,3) > 0;
 clear i 
 
 %%
@@ -81,20 +83,31 @@ for i = 1:numel(LFP)
 end
 
 %% Plot spectogram
+s = 1; L = 1;
 for i = 1:numel(LFP)
     base(i).specgram = LFP(i).specgram_cond{1};
-    sal(i).specgram = LFP(i).specgram_cond{2};
-    tcb_low(i).specgram = LFP(i).specgram_cond{3};
     tcb(i).specgram = LFP(i).specgram_cond{4};
+    if sal_present(i)
+        sal(s).specgram = LFP(i).specgram_cond{2};
+        s = s+1;
+    end
+    if lowtcb_present(i)
+        tcb_low(L).specgram = LFP(i).specgram_cond{3};
+        L = L+1;
+    end
 end
+
+
 figure
 set(gcf,'Color','w');
 hold on
 if sum(COI(:,2)) > 0
-    [h1] = plot_LFP_psd(cat(3, base.specgram), cat(3, sal.specgram), 'k'); % saline
+    base_sal = base(sal_present);
+    [h1] = plot_LFP_psd(cat(3, base_sal.specgram), cat(3, sal.specgram), 'k'); % saline
 end
 if sum(COI(:,3)) > 0
-    [h2] = plot_LFP_psd(cat(3, base.specgram), cat(3, tcb_low.specgram), 'b'); % low_tcb2
+    base_lowtcb = base(lowtcb_present);
+    [h2] = plot_LFP_psd(cat(3, base_lowtcb.specgram), cat(3, tcb_low.specgram), 'b'); % low_tcb2
 end
 [h3] = plot_LFP_psd(cat(3, base.specgram), cat(3, tcb.specgram), 'r'); % tcb2
 xlim([3.5 129])
@@ -103,11 +116,11 @@ xlabel('Frequency (Hz)')
 ylabel('PSD ratio (post/pre)')
 if sum(COI(:,2)) > 0 && sum(COI(:,3)) > 0
     h = [h1 h2 h3];
-    legend(h, 'Control', 'Low TCB-2', 'TCB-2','location','northeast')
+    legend(h, 'Control', 'Low TCB-2', 'TCB-2','location','northeast'); legend box off;
 end
 set(gca, 'XScale', 'log')
 set(gca, 'XTick', 2.^(2:7))
-clear h h1 h2 h3 i base sal tcb_low tcb
+clear h h1 h2 h3 i base sal tcb_low tcb base_sal base_lowtcb
 
 %% Plot frequency power
 figure
@@ -116,7 +129,6 @@ t = tiledlayout('flow');
 title(t, ['Freq: ' num2str(freq_bounds(1)) ' - ' num2str(freq_bounds(2)) ' Hz']);
 %%
 ax1 = nexttile; % plots individual recordings with mean
-lowtcb_present = COI(:,3) > 0;
 plot_freq(LFP(lowtcb_present),align_point,'b',smth);
 xline(900);
 box off
